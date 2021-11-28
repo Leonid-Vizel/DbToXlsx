@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31727.386
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbToXlsx", "DbToXlsx\DbToXlsx.csproj", "{FA4E2B4A-A6EE-4B46-AE75-6B1166230CBE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FA4E2B4A-A6EE-4B46-AE75-6B1166230CBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA4E2B4A-A6EE-4B46-AE75-6B1166230CBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA4E2B4A-A6EE-4B46-AE75-6B1166230CBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA4E2B4A-A6EE-4B46-AE75-6B1166230CBE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8DA8AF73-ADCA-453E-88BA-C7B98E5F8FF4}
+	EndGlobalSection
+EndGlobal
