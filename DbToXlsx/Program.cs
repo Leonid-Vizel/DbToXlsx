@@ -10,8 +10,6 @@ namespace DbToXlsx
     {
         static void Main(string[] args)
         {
-            args = new string[1];
-            args[0] = "BudeBase.db";
             bool alreadyClosed = false;
             Range range = null;
             object misValue = System.Reflection.Missing.Value;
@@ -39,13 +37,15 @@ namespace DbToXlsx
                     reader.Close();
                     Console.WriteLine($"Найдено таблиц: {tables.Count}");
                     #endregion
-                    int sheetCounter = 1;
+                    bool sheetAddFlag = true;
                     foreach (string name in tables)
                     {
+                        Console.WriteLine($"Обрабатываю таблицу: {name}");
                         Worksheet ws;
-                        if (sheetCounter != 1)
+                        if (sheetAddFlag)
                         {
                             ws = (Worksheet)wb.Worksheets.Add();
+                            sheetAddFlag = false;
                         }
                         else
                         {
@@ -103,7 +103,6 @@ namespace DbToXlsx
                         #endregion
                         range.Columns.AutoFit();
                         range.RowHeight = 15;
-                        sheetCounter++;
                     }
                     connection.Close();
                     try
@@ -123,23 +122,6 @@ namespace DbToXlsx
                 {
                     wb.Close();
                     application.Quit();
-                }
-            }
-            else if (File.Exists(args[0]) && args[0].EndsWith(".xlsx"))
-            {
-                Console.WriteLine("Не забывайте, что первая строка в файле Excel должна состоять из названий столбцов.");
-                _Application application = new Application();
-                Workbook wb = application.Workbooks.Open(args[0]);
-                Worksheet ws = wb.Worksheets[1];
-                Console.WriteLine("Соединение с Excel установлено.");
-                object[,] readRange = ws.UsedRange.Value2;
-                using (var connection = new SQLiteConnection($"DataSource='{args[0].Split('.')[0]}.db';Version=3;"))
-                {
-                    connection.Open();
-                    SQLiteCommand sqCom = connection.CreateCommand();
-                    sqCom.CommandText = $"Create Table {args[0].Split('.')[0]}()";
-                    sqCom.ExecuteNonQuery();
-                    connection.Close();
                 }
             }
             else
