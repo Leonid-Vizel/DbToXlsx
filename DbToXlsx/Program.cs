@@ -21,11 +21,11 @@ namespace DbToXlsx
             {
                 _Application application = new Application();
                 Workbook wb = application.Workbooks.Add(missing);
-                Console.WriteLine("Соединение с Excel установлено.");
+                Console.WriteLine("Connected to EXCEL");
                 using (var connection = new SQLiteConnection($"DataSource='{args[0]}';Version=3;Read Only = True;"))
                 {
                     connection.Open();
-                    Console.WriteLine("Соединение с SQLite установлено.");
+                    Console.WriteLine($"Connected to SQLite");
                     using (SQLiteCommand sqCom = new SQLiteCommand("SELECT name FROM sqlite_master WHERE type='table';",connection))
                     {
                         using (SQLiteDataReader reader = sqCom.ExecuteReader())
@@ -40,11 +40,11 @@ namespace DbToXlsx
                         }
                     }
 
-                    Console.WriteLine($"Найдено таблиц: {tableNames.Count}");
+                    Console.WriteLine($"Tables count: {tableNames.Count}");
 
                     foreach (string name in tableNames)
                     {
-                        Console.WriteLine($"Обрабатываю таблицу: {name}");
+                        Console.WriteLine($"Processing table: {name}");
                         
                         if (sheetAddFlag)
                         {
@@ -73,8 +73,8 @@ namespace DbToXlsx
                             }
                         }
 
-                        Console.WriteLine($"Строки: {rows}");
-                        Console.WriteLine($"Столбцы: {cols}");
+                        Console.WriteLine($"Rows count: {rows}");
+                        Console.WriteLine($"Columns count: {cols}");
                         #endregion
                         range = sheet.Range["A1", sheet.Cells[rows + 1, cols].Address];
                         object[,] writeRange = range.Value2;
@@ -121,11 +121,11 @@ namespace DbToXlsx
                     try
                     {
                         wb.SaveAs($"{Environment.CurrentDirectory}\\{args[0].Split('.')[0]}.xlsx");
-                        Console.WriteLine($"{args[0].Split('.')[0]}.xlsx сохранён");
+                        Console.WriteLine($"{args[0].Split('.')[0]}.xlsx successfully saved!");
                     }
                     catch
                     {
-                        Console.WriteLine("Сохранение отменено.");
+                        Console.WriteLine("Saving cancelled.");
                         wb.Close();
                         application.Quit();
                         exceptionClosed = true;
@@ -139,7 +139,7 @@ namespace DbToXlsx
             }
             else
             {
-                Console.WriteLine($"Не могу найти файл '{args[0]}' или неверно указано его расширение. Перезапустите и укажите верный аргумент программы.");
+                Console.WriteLine($"Can't find the file '{args[0]}' or its extension is incorrect. Restart and provide the correct program argument.");
             }
         }
     }
