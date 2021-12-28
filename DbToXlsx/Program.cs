@@ -10,101 +10,114 @@ namespace DbToXlsx
     {
         static void Main(string[] args)
         {
-            bool alreadyClosed = false;
+            bool exceptionClosed = false, sheetAddFlag = true;
+            object missing = System.Reflection.Missing.Value;
+            List<string> tableNames = new List<string>();
+            int rows = 0, cols = 0;
+            Worksheet sheet;
             Range range = null;
-            object misValue = System.Reflection.Missing.Value;
+
             if (File.Exists(args[0]) && args[0].EndsWith(".db"))
             {
                 _Application application = new Application();
-                Workbook wb = application.Workbooks.Add(misValue);
+                Workbook wb = application.Workbooks.Add(missing);
                 Console.WriteLine("Соединение с Excel установлено.");
-                using (var connection = new SQLiteConnection($"DataSource='{args[0]}';Version=3;"))
+                using (var connection = new SQLiteConnection($"DataSource='{args[0]}';Version=3;Read Only = True;"))
                 {
                     connection.Open();
                     Console.WriteLine("Соединение с SQLite установлено.");
-                    SQLiteCommand sqCom = connection.CreateCommand();
-                    #region Getting the names of the tables
-                    sqCom.CommandText = "SELECT name FROM sqlite_master WHERE type='table';";
-                    SQLiteDataReader reader = sqCom.ExecuteReader();
-                    List<string> tables = new List<string>();
-                    if (reader.HasRows)
+                    using (SQLiteCommand sqCom = new SQLiteCommand("SELECT name FROM sqlite_master WHERE type='table';",connection))
                     {
-                        while (reader.Read())
+                        using (SQLiteDataReader reader = sqCom.ExecuteReader())
                         {
-                            tables.Add(reader.GetValue(0).ToString());
+                            if (reader.HasRows)
+                            {
+                                while (reader.Read())
+                                {
+                                    tableNames.Add(reader.GetValue(0).ToString());
+                                }
+                            }
                         }
                     }
-                    reader.Close();
-                    Console.WriteLine($"Найдено таблиц: {tables.Count}");
-                    #endregion
-                    bool sheetAddFlag = true;
-                    foreach (string name in tables)
+
+                    Console.WriteLine($"Найдено таблиц: {tableNames.Count}");
+
+                    foreach (string name in tableNames)
                     {
                         Console.WriteLine($"Обрабатываю таблицу: {name}");
-                        Worksheet ws;
+                        
                         if (sheetAddFlag)
                         {
-                            ws = (Worksheet)wb.Worksheets.Add();
+                            sheet = (Worksheet)wb.Worksheets.Add();
                             sheetAddFlag = false;
                         }
                         else
                         {
-                            ws = wb.Worksheets[1];
+                            sheet = wb.Worksheets[1];
                         }
-                        #region Counting rows
-                        sqCom.CommandText = $"SELECT COUNT(*) FROM [{name}];";
-                        reader = sqCom.ExecuteReader();
-                        reader.Read();
-                        int rows = reader.GetInt32(0);
-                        reader.Close();
-                        Console.WriteLine($"Строки: {rows}");
-                        #endregion
-                        #region Counting cols
-                        sqCom.CommandText = $"SELECT * FROM [{name}];";
-                        reader = sqCom.ExecuteReader();
-                        int cols = reader.VisibleFieldCount;
-                        reader.Close();
-                        Console.WriteLine($"Столбцы: {cols}");
-                        #endregion
-                        range = ws.Range["A1", ws.Cells[rows + 1, cols].Address];
-                        object[,] writeRange = range.Value2;
-                        #region Reading headers
-                        sqCom.CommandText = $"PRAGMA table_info([{name}]);";
-                        reader = sqCom.ExecuteReader();
-                        if (reader.HasRows)
+                        #region Counting rows and cols
+                        using (SQLiteCommand sqCom = new SQLiteCommand($"SELECT COUNT(*) FROM [{name}];",connection))
                         {
-                            for (int i = 1; i <= cols; i++)
+                            using (SQLiteDataReader reader = sqCom.ExecuteReader())
                             {
                                 reader.Read();
-                                writeRange[1, i] = reader.GetValue(1).ToString();
+                                rows = reader.GetInt32(0);
                             }
                         }
-                        reader.Close();
-                        Console.WriteLine("Имена полей загружены");
+
+                        using (SQLiteCommand sqCom = new SQLiteCommand($"SELECT * FROM [{name}];", connection))
+                        {
+                            using (SQLiteDataReader reader = sqCom.ExecuteReader())
+                            {
+                                cols = reader.VisibleFieldCount;
+                            }
+                        }
+
+                        Console.WriteLine($"Строки: {rows}");
+                        Console.WriteLine($"Столбцы: {cols}");
+                        #endregion
+                        range = sheet.Range["A1", sheet.Cells[rows + 1, cols].Address];
+                        object[,] writeRange = range.Value2;
+                        #region Reading headers
+                        using (SQLiteCommand sqCom = new SQLiteCommand($"PRAGMA table_info([{name}]);",connection))
+                        {
+                            using (SQLiteDataReader reader = sqCom.ExecuteReader())
+                            {
+                                if (reader.HasRows)
+                                {
+                                    for (int i = 1; i <= cols; i++)
+                                    {
+                                        reader.Read();
+                                        writeRange[1, i] = reader.GetValue(1).ToString();
+                                    }
+                                }
+                            }
+                        }
                         #endregion
                         #region Reading data
-                        sqCom.CommandText = $"SELECT * FROM [{name}];";
-                        reader = sqCom.ExecuteReader();
-                        if (reader.HasRows)
+                        using (SQLiteCommand sqCom = new SQLiteCommand($"SELECT * FROM [{name}];", connection))
                         {
-                            int currentRow = 2;
-                            while (reader.Read())
+                            using (SQLiteDataReader reader = sqCom.ExecuteReader())
                             {
-                                for (int i = 1; i <= cols; i++)
+                                if (reader.HasRows)
                                 {
-                                    writeRange[currentRow, i] = reader.GetValue(i - 1);
+                                    int currentRow = 2;
+                                    while (reader.Read())
+                                    {
+                                        for (int i = 1; i <= cols; i++)
+                                        {
+                                            writeRange[currentRow, i] = reader.GetValue(i - 1);
+                                        }
+                                        currentRow++;
+                                    }
+                                    range.Value2 = writeRange;
                                 }
-                                currentRow++;
                             }
-                            range.Value2 = writeRange;
                         }
-                        reader.Close();
-                        Console.WriteLine("Данные загружены");
                         #endregion
                         range.Columns.AutoFit();
                         range.RowHeight = 15;
                     }
-                    connection.Close();
                     try
                     {
                         wb.SaveAs($"{Environment.CurrentDirectory}\\{args[0].Split('.')[0]}.xlsx");
@@ -115,10 +128,10 @@ namespace DbToXlsx
                         Console.WriteLine("Сохранение отменено.");
                         wb.Close();
                         application.Quit();
-                        alreadyClosed = true;
+                        exceptionClosed = true;
                     }
                 }
-                if (!alreadyClosed)
+                if (!exceptionClosed)
                 {
                     wb.Close();
                     application.Quit();
